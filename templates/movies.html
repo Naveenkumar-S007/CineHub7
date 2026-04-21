@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CineHub | Recommendations</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body class="results-page">
+
+    <div class="results-header">
+        <h1>CineHub</h1>
+        <a href="/" class="back-btn">← Back</a>
+    </div>
+
+    <h2 class="results-title">
+        Movies Based On Your Mood: <span>{{ mood|capitalize }}</span>
+    </h2>
+
+    <div class="movies-grid">
+
+        {% for movie in movies %}
+        <div class="movie-card">
+
+            <div class="poster-wrapper">
+
+                <!-- FINAL SAFE IMAGE SYSTEM -->
+               <img src="{{ movie.poster_url.strip() if movie.poster_url and movie.poster_url.strip() != '' else url_for('static', filename='images/default.jpg') }}"
+     onerror="this.src='{{ url_for('static', filename='images/default.jpg') }}'"
+     alt="{{ movie.title }}">
+
+
+                <div class="overlay-info">
+                    <h3>{{ movie.title }} ({{ movie.year }})</h3>
+
+                    {% if movie.imdb_rating %}
+                        <p>⭐ IMDb: {{ movie.imdb_rating }}/10</p>
+                    {% endif %}
+
+                    {% if movie.director %}
+                        <p>🎬 {{ movie.director }}</p>
+                    {% endif %}
+
+                    <div class="button-group">
+
+                        <a href="{{ movie.imdb_link }}" target="_blank" class="btn imdb-btn">
+                           IMDb
+                        </a>
+
+                        <a href="{{ movie.trailer_link }}" target="_blank" class="btn trailer-btn">
+                           Trailer
+                        </a>
+
+                        <a href="{{ movie.ott_link }}" target="_blank" class="btn watch-btn">
+                           Watch
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+        {% endfor %}
+
+    </div>
+
+</body>
+</html>
