@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 import csv
 import random
-from emotion_detector import detect_face_emotion  # NEW
+#from emotion_detector import detect_face_emotion  # NEW
 
 app = Flask(__name__)
 
@@ -132,12 +132,12 @@ def recommend():
 
 
 # FACE emotion recommendation (optional route)
-@app.route("/detect_face")
-def detect_face():
-    face_emotion = detect_face_emotion()
-    mood = map_face_emotion(face_emotion)
-    movies = get_movies_by_mood(mood)
-    return render_template("movies.html", mood=mood.capitalize(), movies=movies)
+# @app.route("/detect_face")
+# def detect_face():
+#     face_emotion = detect_face_emotion()
+#     mood = map_face_emotion(face_emotion)
+#     movies = get_movies_by_mood(mood)
+#     return render_template("movies.html", mood=mood.capitalize(), movies=movies)
 
 
 # ==========================================
