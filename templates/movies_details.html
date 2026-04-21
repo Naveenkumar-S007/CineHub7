@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ movie.title }} | CineHub</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header>
+    <h1>🎬 CineHub</h1>
+</header>
+
+<main style="padding:30px; max-width:900px; margin:auto;">
+
+    <h2>{{ movie.title }}</h2>
+
+    <!-- ✅ Poster -->
+    {% if movie.poster_url %}
+        <img src="{{ movie.poster_url }}" alt="{{ movie.title }}" width="250">
+    {% else %}
+        <img src="{{ url_for('static', filename='images/default.jpg') }}" width="250">
+    {% endif %}
+
+    <hr>
+
+    <!-- ✅ Basic Info -->
+    <p><strong>Genre:</strong> {{ movie.genre if movie.genre else "Not Available" }}</p>
+
+    {% if movie.director %}
+        <p><strong>Director:</strong> {{ movie.director }}</p>
+    {% endif %}
+
+    {% if movie.cast %}
+        <p><strong>Cast:</strong> {{ movie.cast }}</p>
+    {% endif %}
+
+    <p>
+        <strong>IMDb Rating:</strong>
+        {% if movie.rating and movie.rating > 0 %}
+            ⭐ {{ movie.rating }}
+        {% else %}
+            Not Available
+        {% endif %}
+    </p>
+
+    <!-- ✅ Overview -->
+    {% if movie.overview %}
+        <p style="margin-top:20px;">{{ movie.overview }}</p>
+    {% endif %}
+
+    <!-- ✅ IMDb Link -->
+    {% if movie.imdb_link %}
+        <p>
+            <a href="{{ movie.imdb_link }}" target="_blank">
+                View on IMDb →
+            </a>
+        </p>
+    {% endif %}
+
+    <br>
+    <a href="{{ url_for('home') }}">← Back to Home</a>
+
+</main>
+
+<footer>
+    <p>© 2026 CineHub | Emotion-Based Hybrid Recommender</p>
+</footer>
+
+</body>
+</html>
