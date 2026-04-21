@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CineHub | Discover Tamil Movies</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <!-- GOOGLE FONT -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- FACE API -->
+    <script defer src="{{ url_for('static', filename='face-api.min.js') }}"></script>
+
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#ff4b2b">
+    
+<style>
+body { font-family: 'Poppins', sans-serif; background: #000; color: #f5f1f1; margin:0; }
+
+.hero-section { position: relative; height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 0 20px; }
+.hero-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:1; }
+.hero-content { position: relative; z-index:2; max-width:600px; }
+
+/* HERO TITLE FIX */
+h1 { 
+    font-size: 2.5rem; 
+    line-height: 1.2; 
+    color: lch(50.71% 99.22 39.47); /* heading in black */
+    text-shadow: 
+        0 0 5px rgba(239, 6, 6, 0.93), 
+        0 0 10px rgba(239, 4, 4, 0.918), 
+        0 0 15px rgb(245, 4, 4);
+}
+
+h1 span { 
+    color:#ff4b2b; 
+    text-shadow:
+        0 0 10px rgba(255,75,43,0.9),
+        0 0 20px rgba(255,75,43,0.8);
+}
+
+.subtitle { font-size:1.2rem; margin: 10px 0 20px; color:#f9f7f7; }
+.hero-search { display:flex; width:100%; max-width:400px; margin: 0 auto 30px; }
+.hero-search input { flex:1; padding:10px 15px; border-radius:50px 0 0 50px; border:none; outline:none; font-size:1rem; }
+.hero-search button { padding:10px 20px; border:none; border-radius:0 50px 50px 0; background:#ff4b2b; color:#fff; cursor:pointer; font-weight:600; transition:0.3s; }
+.hero-search button:hover { background:#ff6b4b; }
+
+/* Camera card adjustments */
+.camera-container { display:flex; justify-content:center; margin-top:15px; }
+.camera-card { 
+    position:relative; 
+    width:280px;   /* reduced from 320px */
+    height:280px;  /* reduced from 420px */
+    border-radius:16px; 
+    overflow:hidden; 
+    background:#111; 
+    cursor:pointer; 
+    transition:0.3s; 
+    box-shadow: 0 0 25px rgba(255,75,43,0.4); /* reduced brightness */
+}
+.camera-card.active { 
+    box-shadow:0 0 50px rgba(255,75,43,0.7); /* less intense than before */
+    transform: scale(1.02); 
+}
+
+video { width:100%; height:100%; object-fit:cover; }
+canvas { position:absolute; top:0; left:0; width:100%; height:100%; }
+
+.scan-overlay { position:absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.15); pointer-events:none; } /* darker overlay reduced brightness */
+.scan-line { position:absolute; top:0; left:0; width:100%; height:2px; background: #ff4b2b; animation: scanAnim 3s linear infinite; }
+@keyframes scanAnim { 0% {top:0;} 50% {top:100%;} 100% {top:0;} }
+
+.camera-content {
+    position: absolute;
+    bottom: 10px;            /* position slightly above bottom */
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;      /* center everything horizontally */
+    justify-content: center;
+    gap: 6px;                 /* spacing between icon, text, and button */
+}
+
+.camera-icon {
+    font-size: 2.8rem;        /* slightly bigger than before */
+    animation: pulse 1.5s infinite;
+}
+
+.camera-content h3 {
+    font-size: 1rem;          /* small, readable title */
+    margin: 0;
+    font-weight: 600;
+}
+
+.scan-btn {
+    padding: 6px 14px;        /* compact but clickable */
+    background: #ff4b2b;
+    border-radius: 22px;      /* slightly rounded */
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.scan-btn:hover {
+    background: #ff6b4b;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+
+@media(max-width:480px) {
+    .hero-section { padding: 0 10px; }
+    h1 { font-size:2rem; }
+    .camera-card { width:240px; height:320px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="brand">🎬 CineHub</div>
+    <div class="nav-links">
+        <a href="/" class="active">Home</a>
+    </div>
+</nav>
+
+<section class="hero-section">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1>
+            Find The Perfect<br>
+            <span>Movie For Your Mood</span>
+        </h1>
+        <p class="subtitle">AI-powered movie recommendations tailored to how you feel.</p>
+
+        <!-- TEXT INPUT -->
+        <form action="/recommend" method="POST" class="hero-search">
+            <input type="text" name="emotion" placeholder="How are you feeling today?" required>
+            <button type="submit">Explore Now</button>
+        </form>
+
+        <!-- CAMERA SECTION -->
+        <div class="camera-container">
+            <div class="camera-card" onclick="startCamera(event)">
+                <video id="cameraFeed" autoplay playsinline></video>
+                <canvas id="overlayCanvas"></canvas>
+                <div class="scan-overlay"></div>
+                <div class="scan-line"></div>
+                <div class="camera-content">
+                    <div class="camera-icon">📷</div>
+                    <h3>AI Mood Detection</h3>
+                    <div class="scan-btn">Start Scan</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+let modelLoaded = false;
+let video, canvas, ctx;
+let detecting = false;
+
+// PRELOAD MODELS
+window.onload = async () => {
+    video = document.getElementById('cameraFeed');
+    canvas = document.getElementById('overlayCanvas');
+    ctx = canvas.getContext('2d');
+
+    if (typeof faceapi !== "undefined") {
+        await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri('/static/models'),
+            faceapi.nets.faceExpressionNet.loadFromUri('/static/models')
+        ]);
+        console.log("🚀 Models Preloaded");
+        modelLoaded = true;
+    }
+};
+
+// START CAMERA & DETECTION
+async function startCamera(event) {
+    if (event) event.preventDefault();
+
+    const card = document.querySelector('.camera-card');
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+        video.srcObject = stream;
+
+        video.onloadedmetadata = () => {
+            video.play();
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            card.classList.add('active');
+
+            if (!modelLoaded) {
+                alert("Model still loading...");
+                return;
+            }
+            detecting = true;
+            detectFace();
+        };
+    } catch (err) {
+        console.error(err);
+        alert("Camera error: " + err.message);
+    }
+}
+
+// FACE DETECTION LOOP
+async function detectFace() {
+    if (!detecting) return;
+
+    const detections = await faceapi
+        .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+        .withFaceExpressions();
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    detections.forEach(det => {
+        const { x, y, width, height } = det.detection.box;
+
+        // FACE BOX
+        ctx.strokeStyle = "lime";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, width, height);
+
+        // GET DOMINANT EMOTION
+        const expressions = det.expressions;
+        const emotion = Object.keys(expressions).reduce((a,b) => expressions[a]>expressions[b]?a:b);
+
+        // SHOW EMOTION TEXT
+        ctx.fillStyle = "yellow";
+        ctx.font = "16px Poppins";
+        ctx.fillText(emotion, x, y-10);
+
+        if (emotion && detecting) {
+            detecting = false;
+
+            // POST to /recommend using form
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/recommend';
+
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'emotion';
+            input.value = emotion;
+            form.appendChild(input);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+
+    requestAnimationFrame(detectFace);
+}
+if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/static/sw.js")
+    .then(() => console.log("SW Registered"));
+}
+</script>
+
+</body>
+</html>
