@@ -1,12 +1,12 @@
 from flask import Flask, render_template, request
 import csv
 import random
-from emotion_detector import detect_face_emotion  # NEW
+import os
 
 app = Flask(__name__)
 
 # ==========================================
-# Load Movies Dataset
+# LOAD MOVIES DATASET
 # ==========================================
 def load_movies():
     movies = []
@@ -35,7 +35,7 @@ def load_movies():
                 })
 
     except FileNotFoundError:
-        print("❌ movies_cleaned.csv not found.")
+        print("❌ movies_cleaned.csv not found")
 
     print("✅ Total Movies Loaded:", len(movies))
     return movies
@@ -44,27 +44,7 @@ def load_movies():
 ALL_MOVIES = load_movies()
 
 # ==========================================
-# TEXT Emotion Detection
-# ==========================================
-def detect_emotion(text):
-    text = text.lower()
-
-    if any(word in text for word in ["sad", "depressed", "heartbroken"]):
-        return "sad"
-    elif any(word in text for word in ["happy", "excited", "joy", "cheerful"]):
-        return "happy"
-    elif any(word in text for word in ["scared", "fear", "horror", "terrified"]):
-        return "scary"
-    elif "bored" in text:
-        return "bored"
-    elif any(word in text for word in ["relaxed", "calm", "peaceful"]):
-        return "relaxed"
-    else:
-        return "happy"
-
-
-# ==========================================
-# FACE Emotion Mapping
+# FACE EMOTION → MOOD MAPPING
 # ==========================================
 def map_face_emotion(emotion):
     if not emotion:
@@ -86,68 +66,53 @@ def map_face_emotion(emotion):
 
 
 # ==========================================
-# Mood Based Filtering
+# MOVIE FILTERING
 # ==========================================
 def get_movies_by_mood(mood):
     if not ALL_MOVIES:
         return []
 
+    mood = mood.lower()
+
     if mood == "sad":
-        filtered = [m for m in ALL_MOVIES if "Drama" in m["genre"]]
+        filtered = [m for m in ALL_MOVIES if "drama" in m["genre"].lower()]
     elif mood == "happy":
-        filtered = [m for m in ALL_MOVIES if "Comedy" in m["genre"]]
+        filtered = [m for m in ALL_MOVIES if "comedy" in m["genre"].lower()]
     elif mood == "scary":
-        filtered = [m for m in ALL_MOVIES if "Thriller" in m["genre"] or "Horror" in m["genre"]]
+        filtered = [m for m in ALL_MOVIES if "horror" in m["genre"].lower() or "thriller" in m["genre"].lower()]
     else:
-        filtered = ALL_MOVIES.copy()
+        filtered = ALL_MOVIES
 
     if not filtered:
-        filtered = ALL_MOVIES.copy()
+        filtered = ALL_MOVIES
 
     random.shuffle(filtered)
     return filtered[:50]
 
 
 # ==========================================
-# Routes
+# ROUTES
 # ==========================================
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-# TEXT & CAMERA emotion recommendation
-@app.route('/recommend', methods=['GET', 'POST'])
+@app.route("/recommend", methods=["GET", "POST"])
 def recommend():
-
-    emotion = request.form.get('emotion') or request.args.get('emotion')
-
-    print("Emotion received:", emotion)
-
-    if not emotion:
-        emotion = "happy"
+    emotion = request.values.get("emotion", "happy")
 
     mood = map_face_emotion(emotion)
-
     movies = get_movies_by_mood(mood)
+
+    print("Emotion:", emotion, "| Mood:", mood, "| Movies:", len(movies))
 
     return render_template("movies.html", mood=mood.capitalize(), movies=movies)
 
 
-FACE emotion recommendation (optional route)
-@app.route("/detect_face")
-def detect_face():
-     face_emotion = detect_face_emotion()
-     mood = map_face_emotion(face_emotion)
-     movies = get_movies_by_mood(mood)
-     return render_template("movies.html", mood=mood.capitalize(), movies=movies)
-
-
 # ==========================================
-# Run App
+# RUN APP
 # ==========================================
-import os
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=True)
