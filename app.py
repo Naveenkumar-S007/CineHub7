@@ -67,17 +67,22 @@ def detect_emotion(text):
 # FACE Emotion Mapping
 # ==========================================
 def map_face_emotion(emotion):
+    if not emotion:
+        return "happy"
+
     emotion = emotion.lower()
-    if emotion == "happy":
-        return "happy"
-    elif emotion == "sad":
-        return "sad"
-    elif emotion in ["fear", "angry", "scary"]:
-        return "scary"
-    elif emotion == "neutral":
-        return "relaxed"
-    else:
-        return "happy"
+
+    emotion_map = {
+        "happy": "happy",
+        "surprised": "happy",
+        "sad": "sad",
+        "fear": "scary",
+        "angry": "scary",
+        "disgust": "scary",
+        "neutral": "relaxed"
+    }
+
+    return emotion_map.get(emotion, "happy")
 
 
 # ==========================================
@@ -114,11 +119,8 @@ def home():
 # TEXT & CAMERA emotion recommendation
 @app.route('/recommend', methods=['GET', 'POST'])
 def recommend():
-    # ✅ Detect method
-    if request.method == 'POST':
-        emotion = request.form.get('emotion')
-    else:
-        emotion = request.args.get('emotion')
+
+    emotion = request.form.get('emotion') or request.args.get('emotion')
 
     print("Emotion received:", emotion)
 
@@ -126,6 +128,7 @@ def recommend():
         emotion = "happy"
 
     mood = map_face_emotion(emotion)
+
     movies = get_movies_by_mood(mood)
 
     return render_template("movies.html", mood=mood.capitalize(), movies=movies)
