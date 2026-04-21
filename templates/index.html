@@ -1,20 +1,15 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CineHub | Discover Tamil Movies</title>
+    <title>CineHub | Discover Movies</title>
 
-    <!-- MAIN CSS (ONLY THIS) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-    <!-- GOOGLE FONT -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-    <!-- FACE API -->
     <script defer src="{{ url_for('static', filename='face-api.min.js') }}"></script>
 
-    <!-- PWA -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#ff4b2b">
 </head>
@@ -24,106 +19,90 @@
 <!-- NAVBAR -->
 <nav class="navbar">
     <div class="brand">🎬 CineHub</div>
-    <div class="nav-links">
-        <a href="/" class="active">Home</a>
-    </div>
 </nav>
 
-<!-- HERO SECTION -->
+<!-- HERO -->
 <section class="hero-section">
-    <div class="hero-overlay"></div>
 
-    <div class="hero-content">
-        <h1>
-            Find The Perfect<br>
-            <span>Movie For Your Mood</span>
-        </h1>
+    <h1>Find Movies Based on Your Mood 🎭</h1>
 
-        <p class="subtitle">
-            AI-powered movie recommendations tailored to how you feel.
-        </p>
+    <!-- TEXT INPUT -->
+    <form action="/recommend" method="POST">
+        <input type="text" name="emotion" placeholder="How are you feeling?" required>
+        <button type="submit">Search</button>
+    </form>
 
-        <!-- TEXT INPUT -->
-        <form action="/recommend" method="POST" class="hero-search">
-            <input type="text" name="emotion" placeholder="How are you feeling today?" required>
-            <button type="submit">Explore Now</button>
-        </form>
+    <!-- CAMERA -->
+    <div class="camera-card" onclick="startCamera(event)">
+        <video id="cameraFeed" autoplay playsinline></video>
+        <canvas id="overlayCanvas"></canvas>
 
-        <!-- CAMERA SECTION -->
-        <div class="camera-container">
-            <div class="camera-card" onclick="startCamera(event)">
-                <video id="cameraFeed" autoplay playsinline></video>
-                <canvas id="overlayCanvas"></canvas>
-
-                <div class="scan-overlay"></div>
-                <div class="scan-line"></div>
-
-                <div class="camera-content">
-                    <div class="camera-icon">📷</div>
-                    <h3>AI Mood Detection</h3>
-                    <div class="scan-btn">Start Scan</div>
-                </div>
-            </div>
-        </div>
+        <p>Click to start AI Face Detection</p>
     </div>
+
 </section>
 
 <script>
-let modelLoaded = false;
+
 let video, canvas, ctx;
+let modelLoaded = false;
 let detecting = false;
 
-// PRELOAD MODELS
+// =========================
+// LOAD MODELS
+// =========================
 window.onload = async () => {
     video = document.getElementById('cameraFeed');
     canvas = document.getElementById('overlayCanvas');
     ctx = canvas.getContext('2d');
 
-    if (typeof faceapi !== "undefined") {
+    try {
         await Promise.all([
             faceapi.nets.tinyFaceDetector.loadFromUri('/static/models'),
             faceapi.nets.faceExpressionNet.loadFromUri('/static/models')
         ]);
-        console.log("🚀 Models Preloaded");
+
         modelLoaded = true;
+        console.log("Models Loaded");
+
+    } catch (err) {
+        console.error("Model load error:", err);
+        alert("Failed to load AI models");
     }
 };
 
+// =========================
 // START CAMERA
+// =========================
 async function startCamera(event) {
     if (event) event.preventDefault();
 
-    const card = document.querySelector('.camera-card');
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
 
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user" },
-            audio: false
-        });
+    video.srcObject = stream;
 
-        video.srcObject = stream;
+    video.onloadedmetadata = () => {
+        video.play();
 
-        video.onloadedmetadata = () => {
-            video.play();
+        setTimeout(() => {
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
 
-            card.classList.add('active');
-
             if (!modelLoaded) {
-                alert("Model still loading...");
+                alert("AI model still loading...");
                 return;
             }
 
             detecting = true;
             detectFace();
-        };
-    } catch (err) {
-        alert("Camera error: " + err.message);
-    }
+
+        }, 500);
+    };
 }
 
-// FACE DETECTION
+// =========================
+// FACE DETECTION LOOP
+// =========================
 async function detectFace() {
     if (!detecting) return;
 
@@ -134,48 +113,61 @@ async function detectFace() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     detections.forEach(det => {
+
         const box = det.detection.box;
 
         ctx.strokeStyle = "lime";
         ctx.lineWidth = 2;
         ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-        const expressions = det.expressions;
-        const emotion = Object.keys(expressions)
-            .reduce((a, b) => expressions[a] > expressions[b] ? a : b);
+        // SAFE emotion detection
+        let emotion = "neutral";
+        let max = 0;
+
+        Object.keys(det.expressions).forEach(key => {
+            if (det.expressions[key] > max) {
+                max = det.expressions[key];
+                emotion = key;
+            }
+        });
 
         ctx.fillStyle = "yellow";
         ctx.font = "16px Poppins";
         ctx.fillText(emotion, box.x, box.y - 10);
 
-        if (emotion && detecting) {
+        // SEND TO FLASK ONLY ONCE
+        if (detecting) {
             detecting = false;
 
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/recommend';
+            setTimeout(() => {
+                const form = document.createElement("form");
+                form.method = "POST";
+                form.action = "/recommend";
 
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'emotion';
-            input.value = emotion;
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = "emotion";
+                input.value = emotion;
 
-            form.appendChild(input);
-            document.body.appendChild(form);
-            form.submit();
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+            }, 400);
         }
     });
 
     requestAnimationFrame(detectFace);
 }
 
-// SERVICE WORKER (FIXED PATH)
+// =========================
+// SERVICE WORKER
+// =========================
 if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/static/service-worker.js")
         .then(() => console.log("SW Registered"));
 }
+
 </script>
 
 </body>
 </html>
-```
