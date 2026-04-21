@@ -12,16 +12,17 @@
         <a href="/" class="back-btn">← Back</a>
     </div>
 
-    <!-- ✅ UPDATED TITLE -->
+    <!-- MOOD TITLE -->
     <h2 class="results-title">
         🎭 Detected Mood: <span>{{ mood|capitalize }}</span>
     </h2>
 
-    <!-- ✅ NEW LINE ADDED -->
+    <!-- MOVIE COUNT -->
     <p style="margin-bottom:20px; opacity:0.8;">
-        Showing {{ movies|length }} movies for your mood
+        Showing {{ movies|length }} movies for "{{ mood }}" mood
     </p>
 
+    <!-- MOVIES GRID -->
     <div class="movies-grid">
 
         {% for movie in movies %}
@@ -29,34 +30,40 @@
 
             <div class="poster-wrapper">
 
-                <!-- FINAL SAFE IMAGE SYSTEM -->
-                <img src="{{ movie.poster_url.strip() if movie.poster_url and movie.poster_url.strip() != '' else url_for('static', filename='images/default.jpg') }}"
+                <!-- SAFE IMAGE HANDLING -->
+                <img src="{{ movie.poster_url if movie.poster_url else url_for('static', filename='images/default.jpg') }}"
                      onerror="this.src='{{ url_for('static', filename='images/default.jpg') }}'"
                      alt="{{ movie.title }}">
 
                 <div class="overlay-info">
+
                     <h3>{{ movie.title }} ({{ movie.year }})</h3>
 
+                    <!-- IMDb -->
                     {% if movie.imdb_rating %}
                         <p>⭐ IMDb: {{ movie.imdb_rating }}/10</p>
+                    {% else %}
+                        <p>⭐ IMDb: N/A</p>
                     {% endif %}
 
+                    <!-- Director -->
                     {% if movie.director %}
                         <p>🎬 {{ movie.director }}</p>
                     {% endif %}
 
+                    <!-- BUTTONS -->
                     <div class="button-group">
 
                         <a href="{{ movie.imdb_link }}" target="_blank" class="btn imdb-btn">
-                           IMDb
+                            IMDb
                         </a>
 
                         <a href="{{ movie.trailer_link }}" target="_blank" class="btn trailer-btn">
-                           Trailer
+                            Trailer
                         </a>
 
                         <a href="{{ movie.ott_link }}" target="_blank" class="btn watch-btn">
-                           Watch
+                            Watch
                         </a>
 
                     </div>
