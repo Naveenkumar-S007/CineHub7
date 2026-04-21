@@ -12,9 +12,15 @@
         <a href="/" class="back-btn">← Back</a>
     </div>
 
+    <!-- ✅ UPDATED TITLE -->
     <h2 class="results-title">
-        Movies Based On Your Mood: <span>{{ mood|capitalize }}</span>
+        🎭 Detected Mood: <span>{{ mood|capitalize }}</span>
     </h2>
+
+    <!-- ✅ NEW LINE ADDED -->
+    <p style="margin-bottom:20px; opacity:0.8;">
+        Showing {{ movies|length }} movies for your mood
+    </p>
 
     <div class="movies-grid">
 
@@ -24,10 +30,9 @@
             <div class="poster-wrapper">
 
                 <!-- FINAL SAFE IMAGE SYSTEM -->
-               <img src="{{ movie.poster_url.strip() if movie.poster_url and movie.poster_url.strip() != '' else url_for('static', filename='images/default.jpg') }}"
-     onerror="this.src='{{ url_for('static', filename='images/default.jpg') }}'"
-     alt="{{ movie.title }}">
-
+                <img src="{{ movie.poster_url.strip() if movie.poster_url and movie.poster_url.strip() != '' else url_for('static', filename='images/default.jpg') }}"
+                     onerror="this.src='{{ url_for('static', filename='images/default.jpg') }}'"
+                     alt="{{ movie.title }}">
 
                 <div class="overlay-info">
                     <h3>{{ movie.title }} ({{ movie.year }})</h3>
