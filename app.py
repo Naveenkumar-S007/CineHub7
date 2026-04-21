@@ -6,13 +6,16 @@ import os
 app = Flask(__name__)
 
 # ==========================================
-# LOAD MOVIES DATASET
+# LOAD MOVIES DATASET (SAFE FOR RENDER)
 # ==========================================
 def load_movies():
     movies = []
 
     try:
-        with open("movies_cleaned.csv", encoding="utf-8") as file:
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        csv_path = os.path.join(BASE_DIR, "movies_cleaned.csv")
+
+        with open(csv_path, encoding="utf-8") as file:
             reader = csv.DictReader(file)
 
             for row in reader:
@@ -34,8 +37,8 @@ def load_movies():
                     "ott_link": f"https://www.justwatch.com/in/search?q={title}"
                 })
 
-    except FileNotFoundError:
-        print("❌ movies_cleaned.csv not found")
+    except Exception as e:
+        print("❌ Error loading CSV:", e)
 
     print("✅ Total Movies Loaded:", len(movies))
     return movies
@@ -111,8 +114,8 @@ def recommend():
 
 
 # ==========================================
-# RUN APP
+# RUN APP (RENDER READY)
 # ==========================================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=False)
