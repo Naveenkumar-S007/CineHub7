@@ -172,6 +172,12 @@ let detecting = false;
 window.onload = async () => {
     video = document.getElementById('cameraFeed');
     canvas = document.getElementById('overlayCanvas');
+
+    if (!video || !canvas) {
+        console.error("Video or Canvas not found!");
+        return;
+    }
+
     ctx = canvas.getContext('2d');
 
     if (typeof faceapi !== "undefined") {
@@ -184,29 +190,48 @@ window.onload = async () => {
     }
 };
 
-// START CAMERA & DETECTION
+// START CAMERA
 async function startCamera(event) {
     if (event) event.preventDefault();
 
     const card = document.querySelector('.camera-card');
 
+    // ✅ ALWAYS get elements again (important fix)
+    video = document.getElementById('cameraFeed');
+    canvas = document.getElementById('overlayCanvas');
+
+    if (!video || !canvas) {
+        alert("Camera elements not found!");
+        return;
+    }
+
+    ctx = canvas.getContext('2d');
+
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+            audio: false
+        });
+
         video.srcObject = stream;
 
         video.onloadedmetadata = () => {
             video.play();
+
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
+
             card.classList.add('active');
 
             if (!modelLoaded) {
                 alert("Model still loading...");
                 return;
             }
+
             detecting = true;
             detectFace();
         };
+
     } catch (err) {
         console.error(err);
         alert("Camera error: " + err.message);
@@ -218,7 +243,10 @@ async function detectFace() {
     if (!detecting) return;
 
     const detections = await faceapi
-        .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+        .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
+            inputSize: 224,
+            scoreThreshold: 0.5
+        }))
         .withFaceExpressions();
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -226,24 +254,22 @@ async function detectFace() {
     detections.forEach(det => {
         const { x, y, width, height } = det.detection.box;
 
-        // FACE BOX
         ctx.strokeStyle = "lime";
         ctx.lineWidth = 2;
         ctx.strokeRect(x, y, width, height);
 
-        // GET DOMINANT EMOTION
         const expressions = det.expressions;
-        const emotion = Object.keys(expressions).reduce((a,b) => expressions[a]>expressions[b]?a:b);
+        const emotion = Object.keys(expressions).reduce((a, b) =>
+            expressions[a] > expressions[b] ? a : b
+        );
 
-        // SHOW EMOTION TEXT
         ctx.fillStyle = "yellow";
         ctx.font = "16px Poppins";
-        ctx.fillText(emotion, x, y-10);
+        ctx.fillText(emotion, x, y - 10);
 
         if (emotion && detecting) {
             detecting = false;
 
-            // POST to /recommend using form
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = '/recommend';
@@ -252,8 +278,8 @@ async function detectFace() {
             input.type = 'hidden';
             input.name = 'emotion';
             input.value = emotion;
-            form.appendChild(input);
 
+            form.appendChild(input);
             document.body.appendChild(form);
             form.submit();
         }
@@ -261,6 +287,8 @@ async function detectFace() {
 
     requestAnimationFrame(detectFace);
 }
+
+// SERVICE WORKER
 if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("/static/sw.js")
     .then(() => console.log("SW Registered"));
